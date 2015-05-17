@@ -25,18 +25,24 @@ server.register({
   if (error) server.log('error', error)
 })
 
+var corsProxyHost = process.env.CORS_PROXY_HOST;
+if (!corsProxyHost) {
+  throw new Error('Set CORS_PROXY_HOST to a valid hostname, e.g.: 192.1.2.3:31337')
+}
+
 // proxy route
 server.route({
   method: '*',
-  path: '/{host}/{path*}',
+  path: '/{path*}',
   handler: {
     proxy: {
       passThrough: true,
       mapUri: function(request, callback) {
-        request.host = request.params.host
-        request.path = request.path.substr(request.params.host.length + 1)
+        request.host = corsProxyHost
+        request.path = request.path
         console.log('proxy to http://' + request.host + request.path)
-        callback(null, 'http://' + request.host + request.path, request.headers);
+        delete request.headers.referer;
+        callback(null, 'http://' + request.host + request.url.path, request.headers);
       }
     }
   }
